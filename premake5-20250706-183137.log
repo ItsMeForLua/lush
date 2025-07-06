@@ -1,0 +1,13 @@
+--- COMMAND ---
+premake5 gmake2 
+
+--- EXIT CODE: 0 ---
+
+--- STDOUT ---
+Building configurations...
+Running action 'gmake2'...
+Done (41ms).
+
+
+--- STDERR ---
+
