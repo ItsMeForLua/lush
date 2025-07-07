@@ -72,9 +72,9 @@
 (defun run-staged-build ()
   "Runs the full build process in stages, logging and diagnosing each step."
   (format t "~&;;; --- Starting Staged Build ---~%")
-  (let ((stages '(("premake5" "gmake2")
+  (let ((stages '(("premake5" "gmake") ; Use gmake instead of gmake2
                   ("make" "clean")
-                  ("make"))) ; Changed from -d to a normal make for clarity
+                  ("make")))
         (results '()))
     (dolist (stage stages (reverse results))
       (let ((result (run-and-log-command (first stage) (rest stage))))

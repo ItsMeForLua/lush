@@ -1,5 +1,5 @@
 --- COMMAND ---
-premake5 gmake2 
+premake5 gmake 
 
 --- EXIT CODE: 0 ---
 
@@ -10,5 +10,4 @@ Done (13ms).
 
 
 --- STDERR ---
-** Warning: gmake2 has been renamed to gmake. Use gmake to generate makefiles instead.
 
