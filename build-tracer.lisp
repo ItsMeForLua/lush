@@ -12,7 +12,7 @@
 
 (defpackage #:build-tracer
   (:use #:cl)
-  (:export #:run-staged-build #:trace-build))
+  (:export #:run-staged-build))
 
 (in-package #:build-tracer)
 
@@ -23,29 +23,27 @@
     (format nil "~4,'0d~2,'0d~2,'0d-~2,'0d~2,'0d~2,'0d"
             year month day hour minute second)))
 
-(defun diagnose-symbols (symbol-to-find object-files)
-  "Uses the 'nm' tool to inspect object files for a given symbol."
-  (format t "~&;;; --- Running Symbol Diagnosis ---~%")
-  (format t ";;; Searching for symbol '~a' in object files...~%" symbol-to-find)
-  (let ((found-in-file nil))
-    (dolist (file object-files)
-      (when (uiop:file-exists-p file)
-        (format t ";;; Inspecting '~a'...~%" file)
-        (let ((nm-output (uiop:run-program (list "nm" file) :output :string :ignore-error-status t)))
-          ;; We search for the symbol followed by a space to avoid partial matches.
-          (if (search (format nil " ~a" symbol-to-find) nm-output)
-              (progn
-                (setf found-in-file file)
-                (format t ";;;   SUCCESS: Found symbol '~a' in ~a.~%" symbol-to-find file)
-                ;; Check if it's a global symbol (T) or local/static (t)
-                (if (search (format nil " T ~a" symbol-to-find) nm-output)
-                    (format t ";;;   INFO: Symbol is GLOBAL (visible to linker).~%")
-                    (format t ";;;   WARNING: Symbol is LOCAL (static) and NOT visible to the linker!~%"))
-                (return)) ; Stop searching once found
-              (format t ";;;   INFO: Symbol '~a' not found in ~a.~%" symbol-to-find file)))))
-    (unless found-in-file
-      (format t ";;; FAILURE: Symbol '~a' was not found in any of the specified object files.~%" symbol-to-find))
-    (format t ";;; --- Symbol Diagnosis Complete ---~%")))
+(defun inspect-source-for-symbol (filepath symbol-name)
+  "Reads a C source file and prints the context around a symbol's definition."
+  (format t "~&;;; --- Running Source Code Inspection ---~%")
+  (format t ";;; Searching for definition of '~a' in '~a'...~%" symbol-name filepath)
+  (when (uiop:file-exists-p filepath)
+    (handler-case
+        (with-open-file (stream filepath)
+          (let ((lines (loop for line = (read-line stream nil) while line collect line)))
+            (let ((line-number (position-if (lambda (line) (search symbol-name line)) lines)))
+              (if line-number
+                  (progn
+                    (format t ";;;   SUCCESS: Found '~a' at line ~a.~%" symbol-name (1+ line-number))
+                    (format t ";;;   Context (10 lines before definition):~%")
+                    (format t ";;;   ----------------------------------------~%")
+                    (loop for i from (max 0 (- line-number 10)) to line-number
+                          do (format t ";;;   ~4d: ~a~%" (1+ i) (nth i lines)))
+                    (format t ";;;   ----------------------------------------~%"))
+                  (format t ";;;   FAILURE: Could not find a line defining '~a' in the file.~%" symbol-name)))))
+      (error (c)
+        (format t ";;;   ERROR: Could not read file ~a. Details: ~a~%" filepath c))))
+  (format t ";;; --- Source Code Inspection Complete ---~%"))
 
 (defun run-and-log-command (command args)
   "Executes a single command and logs its stdout and stderr to a file."
@@ -72,7 +70,7 @@
 (defun run-staged-build ()
   "Runs the full build process in stages, logging and diagnosing each step."
   (format t "~&;;; --- Starting Staged Build ---~%")
-  (let ((stages '(("premake5" "gmake") ; Use gmake instead of gmake2
+  (let ((stages '(("premake5" "gmake")
                   ("make" "clean")
                   ("make")))
         (results '()))
@@ -81,10 +79,9 @@
         (push result results)
         (when (/= (getf result :exit-code) 0)
           (format t ";;; --- Build halted due to non-zero exit code in stage: ~a ---~%" (first stage))
-          ;; If make fails, run the diagnostics.
+          ;; If make fails, run the source code inspection.
           (when (string= (first stage) "make")
-            (diagnose-symbols "luaopen_compat53"
-                              '("obj/Debug/lush.o" "obj/Debug/compat-5.3.o")))
+            (inspect-source-for-symbol "lib/compat53/c-api/compat-5.3.c" "luaopen_compat53"))
           (return (reverse results)))))))
 
 ;;; Example Usage from the REPL:
