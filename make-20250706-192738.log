@@ -1,0 +1,23 @@
+--- COMMAND ---
+make 
+
+--- EXIT CODE: 2 ---
+
+--- STDOUT ---
+==== Building lush (debug) ====
+Creating obj/Debug
+builtins.c
+hashmap.c
+history.c
+lua_api.c
+lush.c
+
+
+--- STDERR ---
+src/lush.c:23:10: fatal error: compat-5.3.h: No such file or directory
+   23 | #include "compat-5.3.h" // Cleaned up the include path. premake handles the rest.
+      |          ^~~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [lush.make:162: obj/Debug/lush.o] Error 1
+make: *** [Makefile:30: lush] Error 2
+

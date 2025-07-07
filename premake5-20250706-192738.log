@@ -1,0 +1,14 @@
+--- COMMAND ---
+premake5 gmake2 
+
+--- EXIT CODE: 0 ---
+
+--- STDOUT ---
+Building configurations...
+Running action 'gmake'...
+Done (13ms).
+
+
+--- STDERR ---
+** Warning: gmake2 has been renamed to gmake. Use gmake to generate makefiles instead.
+
